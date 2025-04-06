@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3 uid="uid://dbta2g3xf0js3"]
+[gd_scene load_steps=66 format=3 uid="uid://dbta2g3xf0js3"]
 
 [ext_resource type="Script" path="res://scripts/swordsman.gd" id="1_6xf6i"]
 [ext_resource type="Texture2D" uid="uid://cme5a7y4gdfeg" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/IDLE.png" id="1_hd6o4"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://domx2gnry0pkb" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/DEFEND.png" id="3_omey5"]
 [ext_resource type="Script" path="res://scripts/selection_box.gd" id="4_eqb5q"]
 [ext_resource type="Texture2D" uid="uid://d2xx3fvg140vk" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/HURT.png" id="4_ouhsl"]
+[ext_resource type="Texture2D" uid="uid://dfnoko8ogyx6j" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/RUN.png" id="7_t4aln"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6vqoe"]
 atlas = ExtResource("2_tjc5r")
@@ -148,6 +149,38 @@ region = Rect2(384, 12, 96, 67)
 [sub_resource type="AtlasTexture" id="AtlasTexture_ktemy"]
 atlas = ExtResource("1_hd6o4")
 region = Rect2(576, 12, 96, 67)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ihmlx"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(0, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q8da8"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(96, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ll3ef"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(192, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e5guu"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(288, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ux8ub"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(384, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cx4du"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(480, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4etsn"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(576, 0, 96, 84)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g0i8q"]
+atlas = ExtResource("7_t4aln")
+region = Rect2(672, 0, 96, 84)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6w076"]
 atlas = ExtResource("3_bgwdk")
@@ -315,6 +348,35 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_ihmlx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q8da8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ll3ef")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e5guu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ux8ub")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cx4du")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4etsn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g0i8q")
+}],
+"loop": true,
+"name": &"run",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_6w076")
 }, {
 "duration": 1.0,
@@ -340,7 +402,7 @@ animations = [{
 }],
 "loop": true,
 "name": &"walk",
-"speed": 5.0
+"speed": 8.0
 }]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_dj0vb"]
@@ -370,9 +432,8 @@ script = ExtResource("1_6xf6i")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -17)
 sprite_frames = SubResource("SpriteFrames_s2wnk")
-animation = &"death"
+animation = &"defend"
 autoplay = "idle"
-frame_progress = 0.868541
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -13)
@@ -381,9 +442,9 @@ shape = SubResource("CircleShape2D_dj0vb")
 [node name="SelectionBox" type="Node2D" parent="."]
 script = ExtResource("4_eqb5q")
 
-[node name="Area2D" type="Area2D" parent="."]
+[node name="Killzone" type="Area2D" parent="."]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Killzone"]
 position = Vector2(0, -18)
 shape = SubResource("RectangleShape2D_2pwnu")
 
@@ -407,4 +468,6 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_klmdy")
 value = 100.0
 show_percentage = false
 
-[connection signal="input_event" from="Area2D" to="." method="_on_unit_select"]
+[connection signal="body_entered" from="Killzone" to="." method="_on_killzone_body_entered"]
+[connection signal="body_exited" from="Killzone" to="." method="_on_killzone_body_exited"]
+[connection signal="input_event" from="Killzone" to="." method="_on_unit_select"]

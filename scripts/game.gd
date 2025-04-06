@@ -3,16 +3,28 @@ extends Node2D
 @onready var swordsman_scene = preload("res://scenes/swordsman.tscn")
 
 var selected_unit: Node = null
+var show_all_movement: bool = false
+
 
 func _draw():
-	if ls
-	lslllls
-	selected_unit and not selected_unit.attacking:
-		draw_dashed_line(selected_unit.global_position, selected_unit.target_position, Color.GOLD, 1, 4, true, true)
-		if selected_unit.friendly:
-			draw_circle(selected_unit.target_position, 4, Color.GREEN, false, 1)
+	if selected_unit and not selected_unit.state == "attack":
+		draw_movement(selected_unit)
+		#draw_dashed_line(selected_unit.global_position, selected_unit.target_position, Color.GOLD, 0.5, 4, true, true)
+		#if selected_unit.friendly:
+			#draw_circle(selected_unit.target_position, 4, Color.GREEN, false, 1)
 		#else:
 			#draw_circle(selected_unit.target_position, 4, Color.RED)
+	if show_all_movement:
+		for i in get_children():
+			if i.is_in_group("units") and i.friendly:
+				draw_movement(i)
+
+func draw_movement(unit: CharacterBody2D) -> void:
+	draw_dashed_line(unit.global_position, unit.target_position, Color.GOLD, 0.5, 4, true, true)
+	if unit.state == "chase":
+		draw_circle(unit.target_position, 4, Color.RED, false, 1)
+	else:
+		draw_circle(unit.target_position, 4, Color.GREEN, false, 1)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("click"):
@@ -50,6 +62,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("unfocus"):
 		selected_unit.deselect_unit()
 		selected_unit = null
+	elif event.is_action_pressed("space"):
+		show_all_movement = not show_all_movement
+		
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
