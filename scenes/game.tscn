@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://e3tonxpl4uuk"]
+
+[ext_resource type="Script" path="res://scripts/game.gd" id="1_abe8y"]
+[ext_resource type="Texture2D" uid="uid://riputemtonbh" path="res://assets/desolate_bg.png" id="2_elooi"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_abe8y")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(519, 264)
+zoom = Vector2(2, 2)
+
+[node name="DesolateBg" type="Sprite2D" parent="."]
+z_index = -1
+position = Vector2(509, 125)
+texture = ExtResource("2_elooi")
