@@ -5,6 +5,11 @@ extends Node2D
 var selected_unit: Node = null
 var show_all_movement: bool = false
 
+@export var websocket_url = "ws://localhost:8765"
+
+var socket: = WebSocketPeer.new()
+
+var unit_spawn_count: int = 0
 
 func _draw():
 	if selected_unit and not selected_unit.state == "attack":
@@ -60,46 +65,67 @@ func _unhandled_input(event: InputEvent) -> void:
 		
 		print("selected unit: ", selected_unit)
 	elif event.is_action_pressed("unfocus"):
-		selected_unit.deselect_unit()
-		selected_unit = null
+		if selected_unit:
+			selected_unit.deselect_unit()
+			selected_unit = null
 	elif event.is_action_pressed("space"):
 		show_all_movement = not show_all_movement
 		
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	$RLAgentTimer.timeout.connect(_on_timer_timeout)
+	$RLAgentTimer.start()
+	
+	var err = socket.connect_to_url(websocket_url)
+	if err != OK:
+		print("Unable to connect")
+		set_process(false)
+	else:
+		# Wait for the socket to connect
+		await get_tree().create_timer(2).timeout
+
+		# Send data
+		socket.send_text("Test packet")
+
 	selected_unit = null
 	for i in range(5):
 		var unit = swordsman_scene.instantiate()
 		unit.friendly = true
-		unit.position = Vector2(250, 150+i*50)
+		unit.position = Vector2(250, 175+i*50)
+		unit.id = unit_spawn_count
 		add_child(unit)
+		unit_spawn_count += 1
 	for i in range(5):
 		var unit = swordsman_scene.instantiate()
 		unit.friendly = false
 		unit.get_node("AnimatedSprite2D").flip_h = true
 		unit.get_node("MoraleBar").position.x = -unit.get_node("MoraleBar").position.x
-		unit.position = Vector2(750, 150+i*50)
+		unit.position = Vector2(750, 175+i*50)
+		unit.id = unit_spawn_count
 		add_child(unit)
-
-class Agent:
-	var type: String
-	var health: int
-	var position: Vector2
-	
-	func _init(_type: String, _health: int, _position: Vector2):
-		type = _type
-		health = _health
-		position = _position
-
+		unit_spawn_count += 1
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	var state = []
-	for i in get_children():
-		if i.is_in_group("units"):
-			var agent = Agent.new(i.type, i.health, i.global_position)
-			state.append(agent)
+	socket.poll()
+
+	var socket_state = socket.get_ready_state()
+
+	if socket_state == WebSocketPeer.STATE_OPEN:
+		while socket.get_available_packet_count():
+			print("Got data from server: ", socket.get_packet().get_string_from_utf8())
+
+	elif socket_state == WebSocketPeer.STATE_CLOSING:
+		pass
+
+	# WebSocketPeer.STATE_CLOSED means the connection has fully closed.
+	# It is now safe to stop polling.
+	elif socket_state == WebSocketPeer.STATE_CLOSED:
+		# The code will be -1 if the disconnection was not properly notified by the remote peer.
+		var code = socket.get_close_code()
+		print("WebSocket closed with code: %d. Clean: %s" % [code, code != -1])
+		set_process(false) # Stop processing.
 	#var list = []
 	#for i in get_children():
 		#if i.is_in_group("units"):
@@ -107,3 +133,25 @@ func _process(delta: float) -> void:
 	#for i in get_children():
 		#i.call_ai(list)
 	queue_redraw()
+
+func _on_timer_timeout():
+	var data = []
+	for i in get_children():
+		if i.is_in_group("units"):
+			var agent = {}
+			agent["id"] = i.id
+			agent["type"] = i.type
+			agent["health"] = i.health
+			agent["friendly"] = i.friendly
+			agent["state"] = i.state
+			agent["global_position"] = {}
+			agent["global_position"]["x"] = i.global_position.x
+			agent["global_position"]["y"] = i.global_position.y
+			data.append(agent)
+	
+	var state = {}
+	state["timestamp"] = Time.get_ticks_msec()
+	state["data"] = data
+	
+	var json_string := JSON.stringify(state)
+	socket.send_text(json_string)

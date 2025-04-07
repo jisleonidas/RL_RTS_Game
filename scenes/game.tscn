@@ -14,3 +14,6 @@ zoom = Vector2(2, 2)
 z_index = -1
 position = Vector2(509, 125)
 texture = ExtResource("2_elooi")
+
+[node name="RLAgentTimer" type="Timer" parent="."]
+autostart = true

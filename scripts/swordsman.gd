@@ -28,6 +28,7 @@ var defend_cooldown: int = 03
 var enemies_in_killzone: = []
 
 var dead: bool = false
+var id: int = 0
 
 func _ready():
 	target_position = global_position
