@@ -30,7 +30,28 @@ var enemies_in_killzone: = []
 var dead: bool = false
 var id: int = 0
 
+@export var websocket_url = "ws://localhost:8765"
+var socket: = WebSocketPeer.new()
+
+var ai: bool = false
+
 func _ready():
+	if ai:
+		$RLTimer.timeout.connect(_on_timer_timeout)
+		$RLTimer.start()
+		
+		var err = socket.connect_to_url(websocket_url)
+		if err != OK:
+			print("Unable to connect")
+			set_process(false)
+		else:
+			# Wait for the socket to connect
+			await get_tree().create_timer(2).timeout
+
+			# Send data
+			socket.send_text("Agent id: %d connected to server" % id)
+			print("Agent id: %d connected to server" % id)
+
 	target_position = global_position
 	add_to_group("units")
 	
@@ -190,3 +211,35 @@ func _on_killzone_body_exited(body: CharacterBody2D) -> void:
 		enemies_in_killzone.erase(body)
 		if target_unit == body and state == "attack":
 			state == "chase"
+
+func _on_timer_timeout():
+	var data = []
+
+	for i in get_parent().get_children():
+		if i.is_in_group("units") and (friendly != i.friendly):
+			var agent = {}
+			agent["null"] = false
+			agent["id"] = i.id
+			agent["type"] = i.type
+			agent["health"] = i.health
+			agent["friendly"] = i.friendly
+			agent["state"] = i.state
+			agent["global_position"] = {}
+			agent["global_position"]["x"] = i.global_position.x
+			agent["global_position"]["y"] = i.global_position.y
+			data.append(agent)
+
+	#while len(data) < 3:
+		#var agent = {}
+		#agent["null"] = true; agent["id"] = null; agent["type"] = null; agent["health"] = null;
+		#agent["friendly"] = null; agent["state"] = null; agent["global_position"] = null
+		#data.append(agent)
+	
+	var state = {}
+	state["agent"] = id
+	state["timestamp"] = Time.get_ticks_msec()
+	state["data"] = data
+	
+	var json_string := JSON.stringify(state)
+	socket.send_text(json_string)
+	socket.poll()
