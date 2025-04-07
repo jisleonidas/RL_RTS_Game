@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://e3tonxpl4uuk"]
 
-[ext_resource type="Script" path="res://scripts/game.gd" id="1_abe8y"]
+[ext_resource type="Script" uid="uid://dd6sa2sfdtg7v" path="res://scripts/game.gd" id="1_abe8y"]
 [ext_resource type="Texture2D" uid="uid://riputemtonbh" path="res://assets/desolate_bg.png" id="2_elooi"]
 
 [node name="Game" type="Node2D"]
@@ -16,4 +16,3 @@ position = Vector2(509, 125)
 texture = ExtResource("2_elooi")
 
 [node name="RLAgentTimer" type="Timer" parent="."]
-autostart = true

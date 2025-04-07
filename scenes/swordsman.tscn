@@ -1,12 +1,12 @@
 [gd_scene load_steps=66 format=3 uid="uid://dbta2g3xf0js3"]
 
-[ext_resource type="Script" path="res://scripts/swordsman.gd" id="1_6xf6i"]
+[ext_resource type="Script" uid="uid://mm5vnyvm1gr7" path="res://scripts/swordsman.gd" id="1_6xf6i"]
 [ext_resource type="Texture2D" uid="uid://cme5a7y4gdfeg" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/IDLE.png" id="1_hd6o4"]
 [ext_resource type="Texture2D" uid="uid://jist2nsmohsc" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/ATTACK 1.png" id="2_tjc5r"]
 [ext_resource type="Texture2D" uid="uid://dmoi2725pcsqa" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/DEATH.png" id="3_1bkqu"]
 [ext_resource type="Texture2D" uid="uid://2bnbfnwrkvj8" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/WALK.png" id="3_bgwdk"]
 [ext_resource type="Texture2D" uid="uid://domx2gnry0pkb" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/DEFEND.png" id="3_omey5"]
-[ext_resource type="Script" path="res://scripts/selection_box.gd" id="4_eqb5q"]
+[ext_resource type="Script" uid="uid://c7d86srpug0s6" path="res://scripts/selection_box.gd" id="4_eqb5q"]
 [ext_resource type="Texture2D" uid="uid://d2xx3fvg140vk" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/HURT.png" id="4_ouhsl"]
 [ext_resource type="Texture2D" uid="uid://dfnoko8ogyx6j" path="res://assets/Knight 2D Pixel Art/Sprites/with_outline/RUN.png" id="7_t4aln"]
 
