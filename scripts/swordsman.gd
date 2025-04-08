@@ -26,6 +26,7 @@ var attack_cooldown: int = 0
 var defend_cooldown: int = 03
 
 var enemies_in_killzone: = []
+var last_reward = 0
 
 var dead: bool = false
 var id: int = 0
@@ -85,7 +86,7 @@ func _ready():
 func _physics_process(delta: float) -> void:
 	if dead:
 		$AnimatedSprite2D.animation = "death"
-		if death_counter > 125:
+		if death_counter > 250:
 			queue_free()
 		else:
 			return
@@ -179,6 +180,7 @@ func set_state(_state: String) -> void:
 func _process(delta: float) -> void:
 	$HealthBar.value = health
 	if health <= 0:
+		last_reward += -10
 		dead = true
 		death_counter += 1
 	if state == "attack" and target_unit in enemies_in_killzone:
@@ -188,6 +190,7 @@ func damage(body: CharacterBody2D) -> void:
 	if not is_instance_valid(body) or body.dead:
 		if state == "attack":
 			state = "idle"
+			last_reward += 10
 		return
 
 	var att = type
@@ -200,6 +203,8 @@ func damage(body: CharacterBody2D) -> void:
 	if body.state == "defend":
 		damage_points *= 0.3
 	body.health -= damage_points
+	body.last_reward += -1
+	last_reward += 1
 
 func _on_killzone_body_entered(body: CharacterBody2D) -> void:
 	if body.is_in_group("units") and (friendly != body.friendly):
@@ -212,22 +217,24 @@ func _on_killzone_body_exited(body: CharacterBody2D) -> void:
 		if target_unit == body and state == "attack":
 			state == "chase"
 
+func get_agent(_agent: CharacterBody2D) -> Dictionary:
+	var agent = {}
+	agent["null"] = false
+	agent["id"] = _agent.id
+	agent["type"] = _agent.type
+	agent["health"] = _agent.health
+	agent["friendly"] = _agent.friendly
+	agent["state"] = _agent.state
+	agent["global_position"] = {}
+	agent["global_position"]["x"] = _agent.global_position.x
+	agent["global_position"]["y"] = _agent.global_position.y
+	return agent
+
 func _on_timer_timeout():
 	var data = []
-
 	for i in get_parent().get_children():
-		if i.is_in_group("units") and (friendly != i.friendly):
-			var agent = {}
-			agent["null"] = false
-			agent["id"] = i.id
-			agent["type"] = i.type
-			agent["health"] = i.health
-			agent["friendly"] = i.friendly
-			agent["state"] = i.state
-			agent["global_position"] = {}
-			agent["global_position"]["x"] = i.global_position.x
-			agent["global_position"]["y"] = i.global_position.y
-			data.append(agent)
+		if i.is_in_group("units") and i != self:  # and (friendly != i.friendly):
+			data.append(get_agent(i))
 
 	#while len(data) < 3:
 		#var agent = {}
@@ -236,10 +243,14 @@ func _on_timer_timeout():
 		#data.append(agent)
 	
 	var state = {}
-	state["agent"] = id
+	state["self"] = get_agent(self)
+	state["reward"] = last_reward
+	state["terminated"] = false
+	state["truncated"] = false
 	state["timestamp"] = Time.get_ticks_msec()
 	state["data"] = data
 	
 	var json_string := JSON.stringify(state)
 	socket.send_text(json_string)
 	socket.poll()
+	last_reward = 0
