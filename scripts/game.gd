@@ -76,6 +76,7 @@ func _ready() -> void:
 	for i in range(5):
 		var unit = swordsman_scene.instantiate()
 		unit.friendly = true
+		unit.ai = true
 		unit.position = Vector2(250, 175+i*50)
 		unit.id = unit_spawn_count
 		add_child(unit)

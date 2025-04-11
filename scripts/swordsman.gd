@@ -36,6 +36,8 @@ var socket: = WebSocketPeer.new()
 
 var ai: bool = false
 
+var chase_units: = [null, null, null]
+
 func _ready():
 	if ai:
 		$RLTimer.timeout.connect(_on_timer_timeout)
@@ -91,12 +93,15 @@ func _physics_process(delta: float) -> void:
 		else:
 			return
 
-	if state in ["idle", "attack", "defend"]:
-		stationary(state)
-	elif state in ["walk", "run"]:
-		move(state)
-	elif state == "chase":
-		chase()
+	if not ai:
+		if state in ["idle", "attack", "defend"]:
+			stationary(state)
+		elif state in ["walk", "run"]:
+			move(state)
+		elif state == "chase":
+			chase()
+	
+	last_reward += -(abs(global_position.x-500)+abs(global_position.y-500))/1000 * 0.01
 
 	#var collision = move_and_collide(velocity*delta)
 	#handle_collision(collision)
@@ -111,6 +116,7 @@ func handle_collision(collision: KinematicCollision2D) -> void:
 		if collider.is_in_group("units") and (friendly != collider.friendly):
 			if state == "chase":
 				state = "attack"
+		
 
 func chase() -> void:
 	if is_instance_valid(target_unit):
@@ -177,6 +183,12 @@ func set_state(_state: String) -> void:
 	if _state in ["idle", "move", "run", "chase", "attack", "defend"]:
 		state = _state
 
+func find_unit(_id: int) -> CharacterBody2D:
+	for i in get_parent().get_children():
+		if i.is_in_group("units") and i.id == _id:
+			return i
+	return null
+
 func _process(delta: float) -> void:
 	$HealthBar.value = health
 	if health <= 0:
@@ -186,6 +198,52 @@ func _process(delta: float) -> void:
 	if state == "attack" and target_unit in enemies_in_killzone:
 		damage(target_unit)
 	
+	var socket_state = socket.get_ready_state()
+
+	if socket_state == WebSocketPeer.STATE_OPEN:
+		while socket.get_available_packet_count():
+			var data_string = socket.get_packet().get_string_from_utf8()
+			print("Got data from server: ", data_string)
+			var json = JSON.new()
+			var error = json.parse(data_string)
+			if error == OK:
+				var data = json.data
+				if data["id"] == id:
+					chase_units[0] = data["chase0"]
+					chase_units[1] = data["chase1"]
+					chase_units[2] = data["chase2"]
+					ai_action(data["action"])
+
+func ai_action(action):
+	print("Calling action: ", action)
+	var speed = WALK_SPEED
+	if state == "run":
+		speed = RUN_SPEED
+	if action == 0:  # moveN
+		velocity = Vector2(0, 1) * speed
+	elif action == 1:  # moveNE
+		velocity = Vector2(1, 1).normalized() * speed
+	elif action == 2:  # moveE
+		velocity = Vector2(1, 0) * speed
+	elif action == 3:  # moveSE
+		velocity = Vector2(1, -1).normalized() * speed
+	elif action == 4:  # moveS
+		velocity = Vector2(0, -1).normalized() * speed
+	elif action == 5:  # moveSW
+		velocity = Vector2(-1, -1).normalized() * speed
+	elif action == 6:  # moveW
+		velocity = Vector2(-1, 0) * speed
+	elif action == 7:  # moveNW
+		velocity = Vector2(-1, 1).normalized() * speed
+	elif action in [8, 9, 10]:  # chase0, chase1, chase 2
+		var unit = find_unit(chase_units[action-8])
+		if unit:
+			target_unit = unit
+			state = "chase"
+	else:
+		velocity = Vector2(0, 0)
+		state = "idle"
+
 func damage(body: CharacterBody2D) -> void:
 	if not is_instance_valid(body) or body.dead:
 		if state == "attack":
@@ -215,7 +273,7 @@ func _on_killzone_body_exited(body: CharacterBody2D) -> void:
 	if body in enemies_in_killzone:
 		enemies_in_killzone.erase(body)
 		if target_unit == body and state == "attack":
-			state == "chase"
+			state = "chase"
 
 func get_agent(_agent: CharacterBody2D) -> Dictionary:
 	var agent = {}
@@ -232,8 +290,9 @@ func get_agent(_agent: CharacterBody2D) -> Dictionary:
 
 func _on_timer_timeout():
 	var data = []
+	data.append(get_agent(self))
 	for i in get_parent().get_children():
-		if i.is_in_group("units") and i != self:  # and (friendly != i.friendly):
+		if i.is_in_group("units") and i != self:  # and i != self:  # and (friendly != i.friendly):
 			data.append(get_agent(i))
 
 	#while len(data) < 3:

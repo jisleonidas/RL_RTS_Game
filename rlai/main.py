@@ -1,13 +1,17 @@
 import asyncio
 import websockets
 import json
+from math import sqrt
+# from agent_tf import RLPlant
 from agent import RLPlant
 
-actions = ["moveN", "moveNE", "moveE", "moveS", "moveSW", "moveW", "moveNW", "chase1", "chase2", "chase3", "defend", "idle"]
+import traceback
+
+actions = ["moveN", "moveNE", "moveE", "moveS", "moveSW", "moveW", "moveNW", "chase0", "chase1", "chase2", "defend", "idle"]
 n_observations = 260
 n_actions = len(actions)
 
-rlplant = RLPlant(n_observations, n_actions)
+rlplants = []
 
 type_map = {"swordsman": 0, "knight": 1, "archer": 2}
 state_map = {"idle": 0, "walk": 1, "run": 2, "chase": 3, "attack": 4, "defend": 5}
@@ -16,6 +20,7 @@ def one_hot(index, num_classes):
     vec = [0] * num_classes
     vec[index] = 1
     return vec
+
 
 def data_to_nn_input(data):
     state = [] 
@@ -39,13 +44,46 @@ def data_to_nn_input(data):
     return state
 
 
-async def process_state(websocket, data, prev_reward, prev_terminated, prev_truncated):
-    action = int(rlplant.run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)[0][0])
+def calc_distance(agent1, agent2):
+    x_diff = agent1["global_position"]["x"] - agent2["global_position"]["x"]
+    y_diff = agent1["global_position"]["y"] - agent2["global_position"]["y"]
+    dist = sqrt(x_diff**2 + y_diff**2)
+    return dist
 
-    json_action = json.dumps(action)
-    await websocket.send(json_action)
 
-    print(f"Sent: {json_action}")
+async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_truncated):
+    if len(rlplants)-1 < id:
+        # rlplants.append(RLPlant((n_observations,), n_actions))
+        rlplants.append(RLPlant(n_observations, n_actions))
+    # action = rlplants[id].run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)
+    action = int(rlplants[id].run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)[0][0])
+
+    dists = [99999999]
+    print("Zero test")
+    for i in range(len(data)):
+        if not data[i]["null"]:
+            dists.append(calc_distance(data[0], data[i]))
+        else:
+            dists.append(99999999)
+    
+    paired = list(zip(dists, data))
+    paired.sort(key=lambda x: x[0])
+    sorted_data = [d for _, d in paired]
+
+    sorted_enemy_data = [i for i in sorted_data if not i["null"] and data[0]["friendly"] != i["friendly"]]
+
+    action_command = {
+        "id": id,
+        "action": action,
+        "chase0": sorted_enemy_data[0]["id"],
+        "chase1": sorted_enemy_data[1]["id"],
+        "chase2": sorted_enemy_data[2]["id"]
+    }
+
+    json_action_command = json.dumps(action_command)
+    await websocket.send(json_action_command)
+
+    print(f"Sent: {json_action_command}")
 
 
 async def handler(websocket):
@@ -66,9 +104,10 @@ async def handler(websocket):
                 pos = agent["global_position"]
                 print(f"  Position: ({pos['x']}, {pos['y']})")
                 print()
-            await process_state(websocket, state["data"], state["reward"], state["terminated"], state["truncated"])
+            await process_state(websocket, state["self"]["id"], state["data"], state["reward"], state["terminated"], state["truncated"])
         except Exception as e:
             print("Error:", e)
+            traceback.print_exc()
 
 async def main():
     async with websockets.serve(handler, "localhost", 8765):

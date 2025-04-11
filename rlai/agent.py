@@ -180,6 +180,7 @@ class RLPlant:
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
         # for each batch state according to policy_net
+        print("Action batch shape:", action_batch.shape)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         # Compute V(s_{t+1}) for all next states.
@@ -189,7 +190,8 @@ class RLPlant:
         # state value or 0 in case the state was final.
         next_state_values = torch.zeros(BATCH_SIZE, device=device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+            # next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
@@ -211,10 +213,34 @@ class RLPlant:
 
     # for i_episode in range(num_episodes):
 
-    def run_agent(self, state, prev_reward, prev_terminated, prev_truncated):
+    def run_agent(self, next_state, prev_reward, prev_terminated, prev_truncated):
+        print("EPISODE: ", self.episode_num)
         # Initialize the environment and get its state
         # state, info = env.reset()
-        state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+        # state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+        # action = self.select_action(state)
+
+        # observation, reward, terminated, truncated, _ = env.step(action.item())
+        # observation = state  # Current state is the observation for previous state
+
+        # prev_reward = torch.tensor([prev_reward], device=device)
+        # done = prev_terminated or prev_truncated
+
+        # if prev_terminated:
+        #     next_state = None
+        # else:
+        #     next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
+
+        # Store the transition in memory
+
+        next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
+        prev_reward = torch.tensor(prev_reward, dtype=torch.float32, device=device).unsqueeze(0)
+
+        if self.prev_state is not None and self.prev_action is not None:
+            self.memory.push(self.prev_state, self.prev_action, next_state, prev_reward)
+
+        # Move to the next state
+        state = next_state
         action = self.select_action(state)
 
         # observation, reward, terminated, truncated, _ = env.step(action.item())
@@ -222,17 +248,6 @@ class RLPlant:
 
         prev_reward = torch.tensor([prev_reward], device=device)
         done = prev_terminated or prev_truncated
-
-        if prev_terminated:
-            next_state = None
-        else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
-
-        # Store the transition in memory
-        self.memory.push(state, action, next_state, prev_reward)
-
-        # Move to the next state
-        state = next_state
 
         # Perform one step of the optimization (on the policy network)
         self.optimize_model()
@@ -250,6 +265,9 @@ class RLPlant:
             self.plot_durations(show_result=True)
             plt.ioff()
             plt.show()
+        
+        self.prev_state = state
+        self.prev_action = action
         
         self.episode_num += 1
         return action

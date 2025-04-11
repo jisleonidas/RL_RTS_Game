@@ -1,0 +1,241 @@
+"""
+A Minimal Deep Q-Learning Implementation (minDQN)
+
+Running this code will render the agent solving the CartPole environment using OpenAI gym. Our Minimal Deep Q-Network is approximately 150 lines of code. In addition, this implementation uses Tensorflow and Keras and should generally run in less than 15 minutes.
+
+Usage: python3 minDQN.py
+"""
+
+import gym
+import tensorflow as tf
+import numpy as np
+from tensorflow import keras
+
+from collections import deque
+import time
+import random
+
+import matplotlib.pyplot as plt  #  Library for plotting
+
+# Patch for deprecated alias if missing
+if not hasattr(np, 'bool8'):
+    np.bool8 = np.bool_
+
+# RANDOM_SEED = 5
+tf.random.set_seed(random.randint(0, 1000000))
+
+env = gym.make('CartPole-v1')
+np.random.seed(random.randint(0, 100000000))
+
+print("Action Space: {}".format(env.action_space))
+print("State space: {}".format(env.observation_space))
+
+# An episode a full game
+train_episodes = 300
+test_episodes = 100
+
+def agent(state_shape, action_shape):
+    """ The agent maps X-states to Y-actions
+    e.g. The neural network output is [.1, .7, .1, .3]
+    The highest value 0.7 is the Q-Value.
+    The index of the highest action (0.7) is action #1.
+    """
+    learning_rate = 0.001
+    init = tf.keras.initializers.HeUniform()
+    model = keras.Sequential()
+    model.add(keras.layers.Dense(24, input_shape=state_shape, activation='relu', kernel_initializer=init))
+    model.add(keras.layers.Dense(12, activation='relu', kernel_initializer=init))
+    model.add(keras.layers.Dense(action_shape, activation='linear', kernel_initializer=init))
+    model.compile(loss=tf.keras.losses.Huber(), optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), metrics=['accuracy'])
+    return model
+
+def get_qs(model, state, step):
+    return model.predict(state.reshape([1, state.shape[0]]))[0]
+
+def train(env, replay_memory, model, target_model, done):
+    learning_rate = 0.7 # Learning rate
+    discount_factor = 0.618
+
+    MIN_REPLAY_SIZE = 1000
+    if len(replay_memory) < MIN_REPLAY_SIZE:
+        return
+
+    batch_size = 64 * 2
+    mini_batch = random.sample(replay_memory, batch_size)
+    current_states = np.array([transition[0] for transition in mini_batch])
+    current_qs_list = model.predict(current_states)
+    new_current_states = np.array([transition[3] for transition in mini_batch])
+    future_qs_list = target_model.predict(new_current_states)
+
+    X = []
+    Y = []
+    for index, (observation, action, reward, new_observation, done) in enumerate(mini_batch):
+        if not done:
+            max_future_q = reward + discount_factor * np.max(future_qs_list[index])
+        else:
+            max_future_q = reward
+
+        current_qs = current_qs_list[index]
+        current_qs[action] = (1 - learning_rate) * current_qs[action] + learning_rate * max_future_q
+
+        X.append(observation)
+        Y.append(current_qs)
+    model.fit(np.array(X), np.array(Y), batch_size=batch_size, verbose=0, shuffle=True)
+
+class RLPlant:
+    def __init__(self, observation_space_shape, action_space_n):
+        self.epsilon = 1 # Epsilon-greedy algorithm in initialized at 1 meaning every step is random at the start
+        self.max_epsilon = 1 # You can't explore more than 100% of the time
+        self.min_epsilon = 0.01 # At a minimum, we'll always explore 1% of the time
+        self.decay = 0.01
+
+        # 1. Initialize the Target and Main models
+        # Main Model (updated every 4 steps)
+        print("OBservation space: ", observation_space_shape)
+        self.model = agent(observation_space_shape, action_space_n)
+        # self.model = agent(env.observation_space.shape, env.action_space.n)
+        # Target Model (updated every 100 steps)
+        self.target_model = agent(observation_space_shape, action_space_n)
+        # self.target_model = agent(env.observation_space.shape, env.action_space.n)
+        self.target_model.set_weights(self.model.get_weights())
+
+        self.replay_memory = deque(maxlen=50_000)
+
+        self.rewards = []
+
+        self.steps_to_update_target_model = 0
+
+        self.prev_observation = None
+        self.prev_action = None
+    
+    def run_agent(self, observation, prev_reward, prev_terminated, prev_truncated):
+        total_training_rewards = 0
+        # observation = env.reset(seed=RANDOM_SEED)[0]
+        done = False
+        
+        # while not done:
+        self.steps_to_update_target_model += 1
+        # if True:
+        #     env.render()
+
+        random_number = np.random.rand()
+        # 2. Explore using the Epsilon Greedy Exploration Strategy
+        if random_number <= self.epsilon:
+            # Explore
+            action = env.action_space.sample()
+        else:
+            # Exploit best known action
+            # model dims are (batch, env.observation_space.n)
+            encoded = observation
+            encoded_reshaped = np.reshape(encoded, [1, env.observation_space.shape[0]])
+            predicted = self.model.predict(encoded_reshaped).flatten()
+            action = np.argmax(predicted)
+
+        # new_observation, reward, terminated, truncated, info = env.step(action)
+        done = prev_terminated or prev_truncated
+        if self.prev_observation and self.prev_action != None:
+            self.replay_memory.append([self.prev_observation, self.prev_action, prev_reward, observation, done])
+        else:
+            self.prev_observation = observation
+            self.prev_action = action
+            return action
+
+        # 3. Update the Main Network using the Bellman Equation
+        if self.steps_to_update_target_model % 4 == 0 or done:
+            train(env, self.replay_memory, self.model, self.target_model, done)
+
+        # observation = new_observation
+        total_training_rewards += prev_reward
+        self.prev_observation = observation
+        self.prev_action = action
+
+        if done:
+            print('Total training rewards: {} after n steps = {} with final reward = {}'.format(total_training_rewards, reward))
+            self.rewards.append(total_training_rewards)
+            total_training_rewards += 1
+
+            if self.steps_to_update_target_model >= 100:
+                print('Copying main network weights to the target network weights')
+                self.target_model.set_weights(self.model.get_weights())
+                self.steps_to_update_target_model = 0
+            return
+        
+        self.epsilon = self.min_epsilon + (self.max_epsilon - self.min_epsilon) * np.exp(-self.decay * self.steps_to_update_target_model)
+        return action
+    
+# def main():
+#     epsilon = 1 # Epsilon-greedy algorithm in initialized at 1 meaning every step is random at the start
+#     max_epsilon = 1 # You can't explore more than 100% of the time
+#     min_epsilon = 0.01 # At a minimum, we'll always explore 1% of the time
+#     decay = 0.01
+
+#     # 1. Initialize the Target and Main models
+#     # Main Model (updated every 4 steps)
+#     model = agent(env.observation_space.shape, env.action_space.n)
+#     # Target Model (updated every 100 steps)
+#     target_model = agent(env.observation_space.shape, env.action_space.n)
+#     target_model.set_weights(model.get_weights())
+
+#     replay_memory = deque(maxlen=50_000)
+
+#     rewards = []
+
+#     steps_to_update_target_model = 0
+
+#     for episode in range(train_episodes):
+#         total_training_rewards = 0
+#         observation = env.reset(seed=RANDOM_SEED)[0]
+#         done = False
+        
+#         while not done:
+#             steps_to_update_target_model += 1
+#             if True:
+#                 env.render()
+
+#             random_number = np.random.rand()
+#             # 2. Explore using the Epsilon Greedy Exploration Strategy
+#             if random_number <= epsilon:
+#                 # Explore
+#                 action = env.action_space.sample()
+#             else:
+#                 # Exploit best known action
+#                 # model dims are (batch, env.observation_space.n)
+#                 encoded = observation
+#                 encoded_reshaped = np.reshape(encoded, [1, env.observation_space.shape[0]])
+#                 predicted = model.predict(encoded_reshaped).flatten()
+#                 action = np.argmax(predicted)
+#             new_observation, reward, terminated, truncated, info = env.step(action)
+#             done = terminated or truncated
+#             replay_memory.append([observation, action, reward, new_observation, done])
+
+#             # 3. Update the Main Network using the Bellman Equation
+#             if steps_to_update_target_model % 4 == 0 or done:
+#                 train(env, replay_memory, model, target_model, done)
+
+#             observation = new_observation
+#             total_training_rewards += reward
+
+#             if done:
+#                 print('Total training rewards: {} after n steps = {} with final reward = {}'.format(total_training_rewards, episode, reward))
+#                 rewards.append(total_training_rewards)
+#                 total_training_rewards += 1
+
+#                 if steps_to_update_target_model >= 100:
+#                     print('Copying main network weights to the target network weights')
+#                     target_model.set_weights(model.get_weights())
+#                     steps_to_update_target_model = 0
+#                 break
+
+#         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay * episode)
+#     env.close()
+
+#     # plt.figure(figsize=(10,6))  # Set the figure size
+#     # plt.plot(rewards, label='Q-learning Train')  # Plot Q-learning training rewards
+#     # plt.xlabel('Episode')  # Label x-axis
+#     # plt.ylabel('Total Reward')  # Label y-axis
+#     # plt.title('Q-Learning (Episode vs Rewards)')
+#     # plt.legend()  # Display legend
+#     # plt.show()  # Show the plot
+
+# if __name__ == '__main__':
+#     main()

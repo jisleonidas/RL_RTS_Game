@@ -1,16 +1,55 @@
-[gd_scene load_steps=3 format=3 uid="uid://e3tonxpl4uuk"]
+[gd_scene load_steps=7 format=3 uid="uid://e3tonxpl4uuk"]
 
 [ext_resource type="Script" uid="uid://dd6sa2sfdtg7v" path="res://scripts/game.gd" id="1_abe8y"]
 [ext_resource type="Texture2D" uid="uid://riputemtonbh" path="res://assets/desolate_bg.png" id="2_elooi"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yqjtg"]
+size = Vector2(1080.5, 65)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lnu2h"]
+size = Vector2(1084, 65)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lbhrr"]
+size = Vector2(134.125, 742.125)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iywne"]
+size = Vector2(102.313, 710)
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_abe8y")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(519, 264)
-zoom = Vector2(2, 2)
 
 [node name="DesolateBg" type="Sprite2D" parent="."]
 z_index = -1
 position = Vector2(509, 125)
 texture = ExtResource("2_elooi")
+
+[node name="WallN" type="StaticBody2D" parent="."]
+position = Vector2(-84, 159)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallN"]
+position = Vector2(591.75, -193)
+shape = SubResource("RectangleShape2D_yqjtg")
+
+[node name="WallS" type="StaticBody2D" parent="."]
+position = Vector2(-168, 318)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallS"]
+position = Vector2(678, 297)
+shape = SubResource("RectangleShape2D_lnu2h")
+
+[node name="WallE" type="StaticBody2D" parent="."]
+position = Vector2(-168, 318)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallE"]
+position = Vector2(1236.06, -22.0625)
+shape = SubResource("RectangleShape2D_lbhrr")
+
+[node name="WallW" type="StaticBody2D" parent="."]
+position = Vector2(-336, 636)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallW"]
+position = Vector2(304.844, -353)
+shape = SubResource("RectangleShape2D_iywne")
