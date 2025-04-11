@@ -1,6 +1,5 @@
 extends CharacterBody2D
 
-
 const WALK_SPEED = 40.0
 const RUN_SPEED = 80.0
 # const SPEED = 300.0
@@ -23,7 +22,7 @@ var attacker_count:= 0
 
 var death_counter: int = 0
 var attack_cooldown: int = 0
-var defend_cooldown: int = 03
+var defend_cooldown: int = 0
 
 var enemies_in_killzone: = []
 var last_reward = 0
@@ -71,6 +70,7 @@ func _ready():
 		add_to_group("enemy")
 		$HealthBar.get("theme_override_styles/fill").bg_color = Color.RED
 
+
 #func _on_body_entered(body: Node) -> void:
 	#if body.is_in_group("units") and (friendly != body.friendly):
 		#attacker_count += 1
@@ -84,7 +84,8 @@ func _ready():
 		#if attacker_count == 0 and state == "defend":
 			#state = "idle"
 			#print("Stopped defending!")
-		
+
+
 func _physics_process(delta: float) -> void:
 	if dead:
 		$AnimatedSprite2D.animation = "death"
@@ -101,7 +102,7 @@ func _physics_process(delta: float) -> void:
 		elif state == "chase":
 			chase()
 	
-	last_reward += -(abs(global_position.x-500)+abs(global_position.y-500))/1000 * 0.01
+	#last_reward += -(abs(global_position.x-500)+abs(global_position.y-500))/1000 * 0.1
 
 	#var collision = move_and_collide(velocity*delta)
 	#handle_collision(collision)
@@ -268,6 +269,10 @@ func _on_killzone_body_entered(body: CharacterBody2D) -> void:
 	if body.is_in_group("units") and (friendly != body.friendly):
 		if body not in enemies_in_killzone:
 			enemies_in_killzone.append(body)
+		if state not in ["chase", "attack"]:
+			attack(body)
+			#target_unit = body
+			#state = "attack"
 
 func _on_killzone_body_exited(body: CharacterBody2D) -> void:
 	if body in enemies_in_killzone:
