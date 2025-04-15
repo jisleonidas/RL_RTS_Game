@@ -199,9 +199,11 @@ func _process(delta: float) -> void:
 	# if state == "attack":
 	if target_unit in enemies_in_killzone:
 		state = "attack"
+		$AnimatedSprite2D.animation = "attack"
 		damage(target_unit)
 	elif len(enemies_in_killzone) > 0:
 		state = "attack"
+		$AnimatedSprite2D.animation = "attack"
 		damage(enemies_in_killzone[0])
 	else:
 		state = "walk"
@@ -262,14 +264,14 @@ func damage(body: CharacterBody2D) -> void:
 	var att = type
 	var def = body.type
 
-	var damage_points = 0.05
+	var damage_points = 0.1
 	if (att == "swordsman" and def == "swordsman"):
-		damage_points = 0.05
+		damage_points = 0.1
 	
 	if body.state == "defend":
 		damage_points *= 0.3
 	body.health -= damage_points
-	body.last_reward += -1
+	body.last_reward += -0.5
 	last_reward += 1
 	
 	print("Damaged!")
