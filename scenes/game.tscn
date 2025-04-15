@@ -20,36 +20,39 @@ script = ExtResource("1_abe8y")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(519, 264)
+zoom = Vector2(1.9, 1.9)
 
 [node name="DesolateBg" type="Sprite2D" parent="."]
 z_index = -1
-position = Vector2(509, 125)
+position = Vector2(500, 104)
 texture = ExtResource("2_elooi")
 
 [node name="WallN" type="StaticBody2D" parent="."]
 position = Vector2(-84, 159)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallN"]
-position = Vector2(591.75, -193)
+position = Vector2(592, -28)
 shape = SubResource("RectangleShape2D_yqjtg")
+
+[node name="Sprite2D" type="Sprite2D" parent="WallN"]
 
 [node name="WallS" type="StaticBody2D" parent="."]
 position = Vector2(-168, 318)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallS"]
-position = Vector2(678, 297)
+position = Vector2(699, 86)
 shape = SubResource("RectangleShape2D_lnu2h")
 
 [node name="WallE" type="StaticBody2D" parent="."]
 position = Vector2(-168, 318)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallE"]
-position = Vector2(1236.06, -22.0625)
+position = Vector2(911, -30)
 shape = SubResource("RectangleShape2D_lbhrr")
 
 [node name="WallW" type="StaticBody2D" parent="."]
 position = Vector2(-336, 636)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallW"]
-position = Vector2(304.844, -353)
+position = Vector2(611, -353)
 shape = SubResource("RectangleShape2D_iywne")

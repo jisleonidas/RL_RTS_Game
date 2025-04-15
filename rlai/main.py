@@ -52,6 +52,7 @@ def calc_distance(agent1, agent2):
 
 
 async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_truncated):
+    global rlplant
     if rlplant is None:
         # rlplants.append(RLPlant((n_observations,), n_actions))
         rlplant = RLPlant(n_observations, n_actions)

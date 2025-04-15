@@ -469,7 +469,6 @@ value = 100.0
 show_percentage = false
 
 [node name="RLTimer" type="Timer" parent="."]
-wait_time = 0.1
 
 [connection signal="body_entered" from="Killzone" to="." method="_on_killzone_body_entered"]
 [connection signal="body_exited" from="Killzone" to="." method="_on_killzone_body_exited"]
