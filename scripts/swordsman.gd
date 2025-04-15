@@ -196,8 +196,15 @@ func _process(delta: float) -> void:
 		last_reward += -10
 		dead = true
 		death_counter += 1
-	if state == "attack" and target_unit in enemies_in_killzone:
+	# if state == "attack":
+	if target_unit in enemies_in_killzone:
+		state = "attack"
 		damage(target_unit)
+	elif len(enemies_in_killzone) > 0:
+		state = "attack"
+		damage(enemies_in_killzone[0])
+	else:
+		state = "walk"
 	
 	var socket_state = socket.get_ready_state()
 
@@ -264,13 +271,13 @@ func damage(body: CharacterBody2D) -> void:
 	body.health -= damage_points
 	body.last_reward += -1
 	last_reward += 1
+	
+	print("Damaged!")
 
 func _on_killzone_body_entered(body: CharacterBody2D) -> void:
 	if body.is_in_group("units") and (friendly != body.friendly):
 		if body not in enemies_in_killzone:
 			enemies_in_killzone.append(body)
-		if state not in ["chase", "attack"]:
-			attack(body)
 			#target_unit = body
 			#state = "attack"
 
