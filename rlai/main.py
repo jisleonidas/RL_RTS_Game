@@ -11,7 +11,7 @@ actions = ["moveN", "moveNE", "moveE", "moveS", "moveSW", "moveW", "moveNW", "ch
 n_observations = 260
 n_actions = len(actions)
 
-rlplants = []
+rlplant = None
 
 type_map = {"swordsman": 0, "knight": 1, "archer": 2}
 state_map = {"idle": 0, "walk": 1, "run": 2, "chase": 3, "attack": 4, "defend": 5}
@@ -52,11 +52,11 @@ def calc_distance(agent1, agent2):
 
 
 async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_truncated):
-    if len(rlplants)-1 < id:
+    if rlplant is None:
         # rlplants.append(RLPlant((n_observations,), n_actions))
-        rlplants.append(RLPlant(n_observations, n_actions))
+        rlplant = RLPlant(n_observations, n_actions)
     # action = rlplants[id].run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)
-    action = int(rlplants[id].run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)[0][0])
+    action = int(rlplant.run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)[0][0])
 
     dists = [99999999]
     print("Zero test")
