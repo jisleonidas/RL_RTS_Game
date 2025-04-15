@@ -2,10 +2,10 @@ import asyncio
 import websockets
 import json
 from math import sqrt
-# from agent_tf import RLPlant
 from agent import RLPlant
-
 import traceback
+import signal
+import sys
 
 actions = ["moveN", "moveNE", "moveE", "moveS", "moveSW", "moveW", "moveNW", "chase0", "chase1", "chase2", "defend", "idle"]
 n_observations = 260
@@ -16,11 +16,27 @@ rlplant = None
 type_map = {"swordsman": 0, "knight": 1, "archer": 2}
 state_map = {"idle": 0, "walk": 1, "run": 2, "chase": 3, "attack": 4, "defend": 5}
 
+async def graceful_shutdown(signal, loop):
+    """Handle shutdown gracefully by saving model"""
+    print(f"Received exit signal {signal.name}...")
+    if rlplant is not None:
+        rlplant.save_checkpoint()
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    [task.cancel() for task in tasks]
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop.stop()
+
+def handle_keyboard_interrupt():
+    """Handle Ctrl+C explicitly"""
+    print("\nKeyboard interrupt received, saving model...")
+    if rlplant is not None:
+        rlplant.save_checkpoint()
+    sys.exit(0)
+
 def one_hot(index, num_classes):
     vec = [0] * num_classes
     vec[index] = 1
     return vec
-
 
 def data_to_nn_input(data):
     state = [] 
@@ -43,19 +59,16 @@ def data_to_nn_input(data):
     
     return state
 
-
 def calc_distance(agent1, agent2):
     x_diff = agent1["global_position"]["x"] - agent2["global_position"]["x"]
     y_diff = agent1["global_position"]["y"] - agent2["global_position"]["y"]
     dist = sqrt(x_diff**2 + y_diff**2)
     return dist
 
-
 async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_truncated):
+    global rlplant
     if rlplant is None:
-        # rlplants.append(RLPlant((n_observations,), n_actions))
         rlplant = RLPlant(n_observations, n_actions)
-    # action = rlplants[id].run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)
     action = int(rlplant.run_agent(data_to_nn_input(data), prev_reward, prev_terminated, prev_truncated)[0][0])
 
     dists = [99999999]
@@ -82,9 +95,7 @@ async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_
 
     json_action_command = json.dumps(action_command)
     await websocket.send(json_action_command)
-
     print(f"Sent: {json_action_command}")
-
 
 async def handler(websocket):
     print("WebSocket connection established")
@@ -94,9 +105,6 @@ async def handler(websocket):
             print("Received agent state:")
             print("Timestamp:", state["timestamp"])
             for agent in state["data"]:
-                # if not agent["null"]:
-                #     print("No agent!")
-                #     continue
                 print(f"  ID: {agent['id']}")
                 print(f"  Type: {agent['type']}")
                 print(f"  Health: {agent['health']}")
@@ -110,9 +118,29 @@ async def handler(websocket):
             traceback.print_exc()
 
 async def main():
+    # Set up signal handlers
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(
+            sig,
+            lambda s=sig: asyncio.create_task(graceful_shutdown(s, loop))
+        )
+
+    # Initialize RLPlant and load any existing checkpoint
+    global rlplant
+    rlplant = RLPlant(n_observations, n_actions)
+    rlplant.load_checkpoint()  # Try to load previous state if exists
+
+    # Set up Ctrl+C handler
+    signal.signal(signal.SIGINT, lambda sig, frame: handle_keyboard_interrupt())
+
     async with websockets.serve(handler, "localhost", 8765):
         print("WebSocket server running on ws://localhost:8765")
         await asyncio.Future()  # Run forever
 
-asyncio.run(main())
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        handle_keyboard_interrupt()
 
