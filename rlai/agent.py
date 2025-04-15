@@ -213,54 +213,30 @@ class RLPlant:
 
     # for i_episode in range(num_episodes):
 
+    # In your RLPlant class, fix the run_agent method:
     def run_agent(self, next_state, prev_reward, prev_terminated, prev_truncated):
         print("EPISODE: ", self.episode_num)
-        # Initialize the environment and get its state
-        # state, info = env.reset()
-        # state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        # action = self.select_action(state)
-
-        # observation, reward, terminated, truncated, _ = env.step(action.item())
-        # observation = state  # Current state is the observation for previous state
-
-        # prev_reward = torch.tensor([prev_reward], device=device)
-        # done = prev_terminated or prev_truncated
-
-        # if prev_terminated:
-        #     next_state = None
-        # else:
-        #     next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
-
-        # Store the transition in memory
-
+        
         next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
         prev_reward = torch.tensor(prev_reward, dtype=torch.float32, device=device).unsqueeze(0)
 
         if self.prev_state is not None and self.prev_action is not None:
             self.memory.push(self.prev_state, self.prev_action, next_state, prev_reward)
 
-        # Move to the next state
         state = next_state
         action = self.select_action(state)
 
-        # observation, reward, terminated, truncated, _ = env.step(action.item())
-        observation = state  # Current state is the observation for previous state
-
-        prev_reward = torch.tensor([prev_reward], device=device)
-        done = prev_terminated or prev_truncated
-
-        # Perform one step of the optimization (on the policy network)
+        # Perform one step of the optimization
         self.optimize_model()
 
         # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
         target_net_state_dict = self.target_net.state_dict()
         policy_net_state_dict = self.policy_net.state_dict()
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         self.target_net.load_state_dict(target_net_state_dict)
 
-        if done:
+        if prev_terminated or prev_truncated:
             self.episode_durations.append(self.episode_num + 1)
             self.plot_durations(show_result=True)
             plt.ioff()
@@ -268,9 +244,46 @@ class RLPlant:
         
         self.prev_state = state
         self.prev_action = action
-        
         self.episode_num += 1
+
+        if self.episode_num % 100 == 0:  # Save every 100 episodes
+            self.save_checkpoint()
+            
         return action
+    
+    # Add these methods to your RLPlant class
+    def save_checkpoint(self, path='rl_checkpoint.pth'):
+        """Save model checkpoint"""
+        torch.save({
+            'policy_state_dict': self.policy_net.state_dict(),
+            'target_state_dict': self.target_net.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'steps_done': self.steps_done,
+            'episode_num': self.episode_num,
+            'episode_durations': self.episode_durations,
+            'memory': self.memory,
+        }, path)
+        print(f"Checkpoint saved to {path}")
+
+    def load_checkpoint(self, path='rl_checkpoint.pth'):
+        """Load model checkpoint"""
+        try:
+            checkpoint = torch.load(path)
+            self.policy_net.load_state_dict(checkpoint['policy_state_dict'])
+            self.target_net.load_state_dict(checkpoint['target_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.steps_done = checkpoint['steps_done']
+            self.episode_num = checkpoint['episode_num']
+            self.episode_durations = checkpoint['episode_durations']
+            self.memory = checkpoint['memory']
+            print(f"Loaded checkpoint from {path}")
+            return True
+        except FileNotFoundError:
+            print(f"No checkpoint found at {path}, starting fresh")
+            return False
+        except Exception as e:
+            print(f"Error loading checkpoint: {e}")
+            return False
 
 # print('Complete')
 # plot_durations(show_result=True)
