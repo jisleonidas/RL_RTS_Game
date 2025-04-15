@@ -83,15 +83,28 @@ async def process_state(websocket, id, data, prev_reward, prev_terminated, prev_
     paired.sort(key=lambda x: x[0])
     sorted_data = [d for _, d in paired]
 
-    sorted_enemy_data = [i for i in sorted_data if not i["null"] and data[0]["friendly"] != i["friendly"]]
-
     action_command = {
         "id": id,
         "action": action,
-        "chase0": sorted_enemy_data[0]["id"],
-        "chase1": sorted_enemy_data[1]["id"],
-        "chase2": sorted_enemy_data[2]["id"]
     }
+
+    sorted_enemy_data = [i for i in sorted_data if not i["null"] and data[0]["friendly"] != i["friendly"]]
+    if len(sorted_enemy_data) == 3:
+        action_command["chase0"] = sorted_enemy_data[0]["id"],
+        action_command["chase1"] = sorted_enemy_data[1]["id"],
+        action_command["chase2"] = sorted_enemy_data[2]["id"]
+    elif len(sorted_enemy_data) == 2:
+        action_command["chase0"] = sorted_enemy_data[0]["id"],
+        action_command["chase1"] = sorted_enemy_data[1]["id"],
+        action_command["chase2"] = None
+    elif len(sorted_enemy_data) == 1:
+        action_command["chase0"] = sorted_enemy_data[0]["id"],
+        action_command["chase1"] = None
+        action_command["chase2"] = None
+    else:
+        action_command["chase0"] = None
+        action_command["chase1"] = None
+        action_command["chase2"] = None
 
     json_action_command = json.dumps(action_command)
     await websocket.send(json_action_command)
@@ -120,11 +133,14 @@ async def handler(websocket):
 async def main():
     # Set up signal handlers
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(
-            sig,
-            lambda s=sig: asyncio.create_task(graceful_shutdown(s, loop))
-        )
+    # for sig in (signal.SIGTERM, signal.SIGINT):
+    # for sig in (signal.SIGINT):
+    sig = signal.SIGINT
+    signal.signal(sig, graceful_shutdown)
+    # loop.add_signal_handler(
+    #     sig,
+    #     lambda s=sig: asyncio.create_task(graceful_shutdown(s, loop))
+    # )
 
     # Initialize RLPlant and load any existing checkpoint
     global rlplant

@@ -268,7 +268,8 @@ class RLPlant:
     def load_checkpoint(self, path='rl_checkpoint.pth'):
         """Load model checkpoint"""
         try:
-            checkpoint = torch.load(path)
+            torch.serialization.add_safe_globals([ReplayMemory, deque, Transition])
+            checkpoint = torch.load(path, weights_only=False)
             self.policy_net.load_state_dict(checkpoint['policy_state_dict'])
             self.target_net.load_state_dict(checkpoint['target_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
