@@ -70,7 +70,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-
+	Engine.time_scale = 5
 
 	selected_unit = null
 	for i in range(5):

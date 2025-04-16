@@ -10,17 +10,17 @@ size = Vector2(1080.5, 65)
 size = Vector2(1084, 65)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lbhrr"]
-size = Vector2(134.125, 742.125)
+size = Vector2(89.0625, 742.125)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_iywne"]
-size = Vector2(102.313, 710)
+size = Vector2(77.1565, 710)
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_abe8y")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(519, 264)
-zoom = Vector2(1.9, 1.9)
+zoom = Vector2(1.6, 1.6)
 
 [node name="DesolateBg" type="Sprite2D" parent="."]
 z_index = -1
@@ -47,12 +47,12 @@ shape = SubResource("RectangleShape2D_lnu2h")
 position = Vector2(-168, 318)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallE"]
-position = Vector2(911, -30)
+position = Vector2(1000, -72)
 shape = SubResource("RectangleShape2D_lbhrr")
 
 [node name="WallW" type="StaticBody2D" parent="."]
 position = Vector2(-336, 636)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallW"]
-position = Vector2(611, -353)
+position = Vector2(522, -363)
 shape = SubResource("RectangleShape2D_iywne")

@@ -1,0 +1,145 @@
+[gd_scene load_steps=18 format=3 uid="uid://bkvcm3hgk1lub"]
+
+[ext_resource type="Script" uid="uid://mm5vnyvm1gr7" path="res://scripts/swordsman.gd" id="1_mak8i"]
+[ext_resource type="Texture2D" uid="uid://dk3bsdsy4lsit" path="res://assets/archer/archer_attack.jpg" id="2_cctdm"]
+[ext_resource type="Texture2D" uid="uid://b5vb0rd7vvisg" path="res://assets/archer/archer_walk.jpg" id="2_orquw"]
+[ext_resource type="Script" uid="uid://c7d86srpug0s6" path="res://scripts/selection_box.gd" id="9_s538n"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_d71b8"]
+atlas = ExtResource("2_cctdm")
+region = Rect2(0, 0, 256, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mak8i"]
+atlas = ExtResource("2_cctdm")
+region = Rect2(256, 0, 256, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1s68y"]
+atlas = ExtResource("2_cctdm")
+region = Rect2(512, 0, 256, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_88c65"]
+atlas = ExtResource("2_cctdm")
+region = Rect2(768, 0, 256, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cctdm"]
+atlas = ExtResource("2_orquw")
+region = Rect2(170, 0, 170, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ejvcm"]
+atlas = ExtResource("2_orquw")
+region = Rect2(340, 0, 170, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c85qa"]
+atlas = ExtResource("2_orquw")
+region = Rect2(510, 0, 170, 341)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vlvv2"]
+atlas = ExtResource("2_orquw")
+region = Rect2(680, 0, 170, 341)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_s2wnk"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_d71b8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mak8i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1s68y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_88c65")
+}],
+"loop": true,
+"name": &"attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cctdm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ejvcm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c85qa")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vlvv2")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_dj0vb"]
+radius = 9.05539
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_orquw"]
+radius = 124.808
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xc2ri"]
+bg_color = Color(3.85046e-07, 0.709276, 0.487304, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_klmdy"]
+bg_color = Color(0.800842, 0.53771, 0.15759, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CharacterBody2D" type="CharacterBody2D" groups=["units"]]
+motion_mode = 1
+script = ExtResource("1_mak8i")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(1, -14.625)
+scale = Vector2(0.0823529, 0.079912)
+sprite_frames = SubResource("SpriteFrames_s2wnk")
+animation = &"attack"
+autoplay = "walk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -13)
+shape = SubResource("CircleShape2D_dj0vb")
+
+[node name="SelectionBox" type="Node2D" parent="."]
+script = ExtResource("9_s538n")
+
+[node name="Killzone" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Killzone"]
+position = Vector2(0, -18)
+shape = SubResource("CircleShape2D_orquw")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+offset_left = -13.0
+offset_top = -45.0
+offset_right = 13.0
+offset_bottom = -39.0
+theme_override_styles/fill = SubResource("StyleBoxFlat_xc2ri")
+step = 1.0
+value = 100.0
+show_percentage = false
+
+[node name="MoraleBar" type="ProgressBar" parent="."]
+visible = false
+offset_left = 19.0
+offset_top = -39.0
+offset_right = 23.0
+offset_bottom = -12.0
+theme_override_styles/fill = SubResource("StyleBoxFlat_klmdy")
+value = 100.0
+show_percentage = false
+
+[node name="RLTimer" type="Timer" parent="."]
+
+[connection signal="body_entered" from="Killzone" to="." method="_on_killzone_body_entered"]
+[connection signal="body_exited" from="Killzone" to="." method="_on_killzone_body_exited"]
+[connection signal="input_event" from="Killzone" to="." method="_on_unit_select"]
